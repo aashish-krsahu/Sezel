@@ -1,0 +1,32 @@
+# Sezel Phase 1 Model Configuration
+
+models:
+  primary:
+    name: "llama3"
+    type: "ollama"
+    host: "http://localhost:11434"
+    context_window: 4096
+    temperature: 0.7
+    top_p: 0.9
+
+  available:
+    - name: "qwen2.5:7b"
+      description: "Qwen 7B model"
+    - name: "mistral"
+      description: "Mistral 7B model"
+    - name: "llama2"
+      description: "Llama 2 7B model"
+
+memory:
+  working:
+    max_turns: 20
+    retention_turns: 10
+  episodic:
+    database: "sezel.db"
+    max_entries: 10000
+
+system:
+  name: "Sezel"
+  version: "0.1.0"
+  description: "Phase 1 Persistent AI Assistant"
+
