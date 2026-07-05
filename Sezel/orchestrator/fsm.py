@@ -8,6 +8,7 @@ class State(Enum):
     IDLE = auto()
     PERCEIVING = auto()
     ASSEMBLING = auto()
+    ROUTING = auto()
     REASONING = auto()
     RESPONDING = auto()
     CONSOLIDATING = auto()
