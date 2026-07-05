@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Any
 import time
+from enum import Enum
 
 
 @dataclass
@@ -66,4 +67,20 @@ class Plan:
     """The LLM's response plan."""
     text: str
     tool_calls: list[dict] = field(default_factory=list)
+
+@dataclass
+class MemoryHit:
+    """Attributes:
+        text: The actual memory content (e.g. "User's name is Alice")
+        score: How relevant this is (0.0 = not relevant, 1.0 = perfect match)
+        meta: Extra info like when it was saved, what category, etc.
+    """
+    text: str
+    score: float
+    meta: dict[str, Any] = field(default_factory=dict)
+
+class route:
+
+    LOCAL: "local"
+    CLOUD: "cloud"
 
