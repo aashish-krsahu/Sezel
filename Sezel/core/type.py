@@ -79,7 +79,7 @@ class MemoryHit:
     score: float
     meta: dict[str, Any] = field(default_factory=dict)
 
-class route:
+class Route:
 
     LOCAL: "local"
     CLOUD: "cloud"
