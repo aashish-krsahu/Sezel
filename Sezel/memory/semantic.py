@@ -8,7 +8,7 @@ from sympy.plotting.backends.textbackend import text
 from ..core.type import MemoryHit
 from ..cognition.embedder import BGEmbedder
 
-class SementicStore:
+class SemanticStore:
 
     def __init__(
         self,
