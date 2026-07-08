@@ -81,6 +81,6 @@ class MemoryHit:
 
 class Route:
 
-    LOCAL: "local"
-    CLOUD: "cloud"
+    LOCAL = "local"
+    CLOUD = "cloud"
 

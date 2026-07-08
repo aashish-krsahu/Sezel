@@ -35,7 +35,7 @@ class ClaudeLLM:
             ctx: Context,
             *,
             tools: list[dict] | None = None
-    ) -> plan:
+    ) -> Plan:
 
         system_prompt, messages = self._render(ctx)
 

@@ -1,14 +1,25 @@
 """Main entry point for Sezel Phase 1."""
 
-import asyncio
+# When this module is executed directly (python Sezel\main.py) the
+# package context for relative imports is not set which raises
+# "attempted relative import with no known parent package". Set up
+# sys.path and __package__ so relative imports work in both
+# `python -m Sezel.main` and `python Sezel\main.py` execution modes.
 import sys
-import os
+import pathlib
+
+if globals().get("__package__") is None and __name__ == "__main__":
+    # Insert the repository root (parent of the package dir) into sys.path
+    package_dir = pathlib.Path(__file__).resolve().parent
+    sys.path.insert(0, str(package_dir.parent))
+    # Set package name so relative imports behave correctly
+    __package__ = package_dir.name
+
+import asyncio
 from pathlib import Path
 
 from .core.bus import EventBus
 from .core.config import Config
-from .core.type import Turn, Route
-from .core.protocols import LLM
 from .orchestrator.fsm import FSM
 from .orchestrator.loop import Orchestrator
 from .orchestrator.router import Router

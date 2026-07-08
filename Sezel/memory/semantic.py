@@ -23,7 +23,7 @@ class SemanticStore:
 
         self._collection = None
 
-    def get_collection(self):
+    def _get_collection(self):
         if self._collection is None:
             import chromadb
             from chromadb.config import Settings
@@ -38,7 +38,7 @@ class SemanticStore:
                 metadata= {"hnsw:space": "cosine"}
             )
 
-            return self._collection
+        return self._collection
 
     async def upsert(self, text: str, meta: dict | None = None):
 
@@ -53,7 +53,7 @@ class SemanticStore:
         Returns:
             The unique ID of the stored memory
         """
-        collection = self.get_collection()
+        collection = self._get_collection()
 
         vector = await self.embedder.embed(text)
 
@@ -82,7 +82,7 @@ class SemanticStore:
         Returns:
             List of MemoryHit objects, sorted by relevance (best first)
         """
-        collection = self.get_collection()
+        collection = self._get_collection()
 
         count = collection.count()
         if count == 0:
@@ -118,7 +118,7 @@ class SemanticStore:
 
     async def clear(self) -> None:
         """delete all memory"""
-        collection = self.get_collection()
+        collection = self._get_collection()
         all_ids = collection.get()["ids"]
         if all_ids:
             collection.delete(ids=all_ids)

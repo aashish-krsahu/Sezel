@@ -46,3 +46,7 @@ htmlcov/
 Thumbs.db
 
 plan/
+
+sezel.db
+
+sezel_memory/

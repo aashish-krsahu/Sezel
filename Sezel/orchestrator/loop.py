@@ -102,7 +102,12 @@ class Orchestrator:
         except Exception as e:
             print(f"\n[Unexpected error in orchestrator: {e}]")
 
-    async def _perceive(self, perc: Perception) -> Context:
+    def _perceive(self, event: Event):
+
+        text = event.payload.get("text", "")
+        return Perception(text=text)
+
+    async def _assemble(self, perc: Perception) -> Context:
         """
         Assemble context from perception + working memory + semantic retrieval.
         This now searches semantic memory for relevant past facts and
