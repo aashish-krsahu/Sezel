@@ -16,11 +16,11 @@ class Consolidate:
     """
 
     def __init__(
-            self,
-            cloud_llm: LLM,
-            episodic_store: EpisodicStore,
-            semantic_store: SemanticStore,
-            max_per_tick: int = 10
+        self,
+        cloud_llm: LLM,
+        episodic_store: EpisodicStore,
+        semantic_store: SemanticStore,
+        max_per_tick: int = 10
     ):
         self.cloud_llm = cloud_llm
         self.episodic_store = episodic_store
@@ -129,6 +129,3 @@ class Consolidate:
                 facts.append(line[2:])
 
         return facts
-
-
-
