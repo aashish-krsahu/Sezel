@@ -1,0 +1,2 @@
+"""Sezel core module."""
+

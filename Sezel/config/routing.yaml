@@ -1,0 +1,10 @@
+routing:
+  local_ctx_limit: 6000
+  complexity_threshold: 0.6
+  
+  claude_model: "claude-sonnet-4-6"
+  claude_max_tokens: 1024
+
+  consolidation:
+    max_per_tick: 10
+    idle_minutes: 5
