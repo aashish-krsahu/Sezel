@@ -2,7 +2,7 @@
     now with routing + semantic memory retrieval.
 
     The loop flow
-        perceive → assemble (WITH memory) → ROUTE → reason (local OR cloud) → respond → consolidate
+        perceive → [detect emotion] -> assemble -> [appraise mood] → route → reason (local OR cloud) → respond → consolidate
 
 """
 
@@ -17,7 +17,9 @@ from ..memory.working import WorkingMemory
 from ..memory.episodic import EpisodicStore
 from ..memory.semantic import SemanticStore
 from ..interface.cli import CliInterface
-
+from ..emotion.affect import AffectiveState
+from ..emotion.appraisal import Appraiser
+from ..emotion.detector import TextEmotionDetector
 
 class Orchestrator:
     """Main orchestrator managing the full event loop and state transitions."""
@@ -32,7 +34,10 @@ class Orchestrator:
         episodic: EpisodicStore,
         semantic: SemanticStore,
         fsm: FSM,
-        cli: CliInterface | None = None
+        cli: CliInterface | None = None,
+        affective_state : AffectiveState | None = None,
+        text_emotion_detector : TextEmotionDetector | None = None,
+        decay_interval: float = 30
     ):
         self.bus = bus
         self.local_llm = local_llm
@@ -43,6 +48,11 @@ class Orchestrator:
         self.semantic = semantic
         self.fsm = fsm
         self.cli = cli
+        self.mood = affective_state or AffectiveState()
+        self.text_emotion = text_emotion_detector or TextEmotionDetector()
+        self.appraiser = Appraiser(self.mood)
+        self.decay_interval = decay_interval
+        self._decay_task: asyncio.Task | None = None
 
     async def run(self) -> None:
         """Main Orchestrator loop."""
@@ -59,6 +69,12 @@ class Orchestrator:
                 #  PERCEIVE: Parse raw event into perception
 
                 perc = self._perceive(ev)
+
+                if perc.text:
+                    detected = self.text_emotion(perc.text)
+                    if detected is not None:
+                        perc.text = detected
+
                 self.fsm.to(State.ASSEMBLING)
 
                 #  ASSEMBLE: Build context from perception +
@@ -66,6 +82,9 @@ class Orchestrator:
 
                 ctx = await self._assemble(perc)
                 self.fsm.to(State.ROUTING)
+
+                current_mood = self.appraiser.appraise(perc, ctx)
+                ctx.mood = current_mood
 
                 # ROUTE: Decide which LLM to use
 
@@ -147,7 +166,7 @@ class Orchestrator:
         return Context(
             working= working_turn,
             retrieved= retrieved_turn,
-            mood=Affect(),
+            mood=self.mood.current(),
             perception=perc,
             token_estimate=token_estimate
         )
@@ -161,6 +180,10 @@ class Orchestrator:
 
     async def _consolidate(self, perc: Perception, plan: Plan) -> None:
         """Save turns to both working and episodic memory."""
+
+        user_affect = perc.user_affect or Affect()
+        current_mood = self.mood.current()
+
         user_turn = Turn(role="user", content=perc.text or "")
         asst_turn = Turn(role="assistant", content=plan.text)
 
@@ -169,6 +192,16 @@ class Orchestrator:
         self.working.append(asst_turn)
 
         # Save to episodic store (persistent SQLite)
-        await self.episodic.write(user_turn, Affect())
-        await self.episodic.write(asst_turn, Affect())
+        await self.episodic.write(user_turn, user_affect)
+        await self.episodic.write(asst_turn, current_mood)
+
+    async def _decay_loop(self) -> None:
+        try:
+            while True:
+                await asyncio.sleep(self.decay_interval)
+                self.mood.decay_tick()
+                # Persist after decay so mood survives crashes
+                self.mood.persist()
+        except asyncio.CancelledError:
+            pass
 

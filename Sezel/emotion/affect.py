@@ -33,6 +33,14 @@ class AffectiveState:
 
         self._load()
 
+    def current(self) -> Affect:
+        """Return the current affective state as an Affect dataclass."""
+        return Affect(
+            valence=self._valence,
+            arousal=self._arousal,
+            dominance=self._dominance,
+        )
+
     def apply(self, delta) -> None:
         """
         Apply an affect delta, then clamp to [-1.0, 1.0].

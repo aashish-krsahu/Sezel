@@ -58,8 +58,8 @@ class Appraiser:
             count = 0
             for turn in ctx.working[-4:]:
                 if turn.role == "user":
-                    centiment = Appraiser._rough_centiment(turn.content)
-                    recent_moods += centiment
+                    sentiment = Appraiser._rough_sentiment(turn.content)
+                    recent_moods += sentiment
                     count += 1
 
             if count > 0:
@@ -79,7 +79,7 @@ class Appraiser:
         return self.state.current()
 
     @staticmethod
-    def _rough_centiment(text: str) -> float:
+    def _rough_sentiment(text: str) -> float:
         """
             This is a lightweight approximation used when the TextEmotion
             detector isn't available or as a fallback. Returns -1.0 to 1.0.
