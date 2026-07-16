@@ -73,7 +73,7 @@ class Orchestrator:
                 if perc.text:
                     detected = self.text_emotion(perc.text)
                     if detected is not None:
-                        perc.text = detected
+                        perc.user_affect = detected
 
                 self.fsm.to(State.ASSEMBLING)
 

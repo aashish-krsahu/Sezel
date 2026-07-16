@@ -8,6 +8,7 @@ that updates Sezel's persistent affective state.
 
 import math
 from ..core.type import Affect, Perception, Context
+from .affect import AffectiveState
 
 class Appraiser:
     """
@@ -103,8 +104,8 @@ class Appraiser:
         }
 
         words = set(text.lower().split())
-        neg_count = sum(1 for w in words if w is negative_words)
-        pos_count = sum(1 for w in words if w is positive_words)
+        neg_count = sum(1 for w in words if w in negative_words)
+        pos_count = sum(1 for w in words if w in positive_words)
 
         if neg_count == 0 and pos_count == 0:
             return 0.0

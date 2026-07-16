@@ -99,7 +99,7 @@ class AffectiveState:
             If the file is corrupt, silently starts fresh at baseline.
         """
 
-        if not self.persist_path.exists():
+        if not Path(self.persist_path).exists():
             return
         try:
             data = json.loads(self.persist_path.read_text())

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import result
 
 from ..core.type import Affect
 
-EMOTION_TO_PAD = dict[str, tuple[float, float, float]] = {
+EMOTION_TO_PAD: dict[str, tuple[float, float, float]] = {
     "anger":     (-0.51,  0.59,  0.25),
     "disgust":   (-0.60,  0.35,  0.11),
     "fear":      (-0.64,  0.60, -0.43),
@@ -22,9 +22,12 @@ class TextEmotionDetector:
     text into 7 emotion classes. Maps the result to PAD affect.
     """
 
-    def __init__(self, model_name: str = "j-hartman/emotion-english-distilroberta") -> None:
+    def __init__(self, model_name: str = "j-hartmann/emotion-english-distilroberta-base") -> None:
         self.model_name = model_name
         self._classifier = None
+
+    def __call__(self, text: str) -> Affect | None:
+        return self.detect(text)
 
     def _load(self) -> None:
         """
