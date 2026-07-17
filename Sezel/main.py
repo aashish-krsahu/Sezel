@@ -8,6 +8,8 @@
 import sys
 import pathlib
 
+from networkx.algorithms import dominance
+
 if globals().get("__package__") is None and __name__ == "__main__":
     # Insert the repository root (parent of the package dir) into sys.path
     package_dir = pathlib.Path(__file__).resolve().parent
@@ -19,6 +21,7 @@ import asyncio
 from pathlib import Path
 
 from .core.bus import EventBus
+from .core.type import Affect
 from .core.config import Config
 from .orchestrator.fsm import FSM
 from .orchestrator.loop import Orchestrator
@@ -31,6 +34,9 @@ from .cognition.llm_cloud import ClaudeLLM
 from .cognition.llm_local import OllamaLLM
 from .cognition.embedder import BGEmbedder
 from .interface.cli import CliInterface
+from .emotion.affect import AffectiveState
+from .emotion.appraisal import Appraiser
+from .emotion.detector import TextEmotionDetector
 
 
 async def main():
@@ -155,6 +161,20 @@ async def main():
     else:
         print("   Consolidator disabled (needs cloud LLM)")
 
+    affective_state= AffectiveState(
+        baseline= Affect(valence= 0.1, arousal= 0.0, dominance= 0.1),
+        decay_per_sec= 0.95,
+        persist_path= "sezel_mood.json"
+    )
+
+    initial_mood = affective_state.current()
+    print(f"   Affective state loaded: {initial_mood.as_prompt()}")
+
+    text_emotion= TextEmotionDetector()
+    print("   Text emotion detector ready (model loads on first use)")
+
+    appraiser= Appraiser(affective_state)
+    print("   Appraiser ready")
 
     # STEP 8: Wire the Orchestrator
     print("[12/12] Wiring orchestrator...")
@@ -169,6 +189,9 @@ async def main():
         episodic=episodic,
         semantic=semantic,
         fsm=fsm,
+        affective_state=affective_state,
+        text_emotion_detector=text_emotion,
+        decay_interval=30.0,
     )
 
     cli = CliInterface(bus)
@@ -191,6 +214,8 @@ async def main():
         print("\n[Shutting down...]")
     finally:
         print("[Closing connections...]")
+        affective_state.persist()
+        print("[Mood persisted to disk]")
         try:
             await local_llm.close()
             if cloud_llm:

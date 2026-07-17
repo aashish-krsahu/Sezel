@@ -2,7 +2,6 @@
 
 from enum import Enum, auto
 
-
 class State(Enum):
     """FSM states for the orchestrator."""
     IDLE = auto()
@@ -46,4 +45,3 @@ class FSM:
         """Reset FSM to IDLE."""
         self.state = State.IDLE
         self._history.clear()
-
