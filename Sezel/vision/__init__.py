@@ -1,0 +1,1 @@
+"""Vision module: screen capture, OCR, UI tree, and VLM pipeline."""
