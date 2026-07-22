@@ -6,7 +6,6 @@ class State(Enum):
     """FSM states for the orchestrator."""
     IDLE = auto()
     PERCEIVING = auto()
-    Appraising = auto()
     ASSEMBLING = auto()
     ROUTING = auto()
     REASONING = auto()

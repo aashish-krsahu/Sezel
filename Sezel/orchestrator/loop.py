@@ -38,6 +38,7 @@ class Orchestrator:
         affective_state : AffectiveState | None = None,
         text_emotion_detector : TextEmotionDetector | None = None,
         decay_interval: float = 30
+        cli: CliInterface | None = None
     ):
         self.bus = bus
         self.local_llm = local_llm
