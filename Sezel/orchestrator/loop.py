@@ -8,6 +8,8 @@
 
 import asyncio
 
+from core.type import Route
+from .fsm import State
 from .router import Router
 from ..core.bus import EventBus
 from ..core.type import Event, Perception, Context, Affect, Turn, Plan
@@ -20,6 +22,7 @@ from ..interface.cli import CliInterface
 from ..emotion.affect import AffectiveState
 from ..emotion.appraisal import Appraiser
 from ..emotion.detector import TextEmotionDetector
+from ..vision.vlm_pipeline import VisionPipeline
 
 class Orchestrator:
     """Main orchestrator managing the full event loop and state transitions."""
@@ -38,6 +41,7 @@ class Orchestrator:
         affective_state : AffectiveState | None = None,
         text_emotion_detector : TextEmotionDetector | None = None,
         decay_interval: float = 30,
+        vision_pipeline : VisionPipeline | None = None,
     ):
         self.bus = bus
         self.local_llm = local_llm
@@ -52,6 +56,7 @@ class Orchestrator:
         self.text_emotion = text_emotion_detector or TextEmotionDetector()
         self.appraiser = Appraiser(self.mood)
         self.decay_interval = decay_interval
+        self.vision_pipeline = vision_pipeline
         self._decay_task: asyncio.Task | None = None
 
     async def run(self) -> None:
@@ -61,13 +66,11 @@ class Orchestrator:
             while True:
 
                 # IDLE: Wait for an event (blocks here)
-
                 self.fsm.to(State.PERCEIVING)
 
                 ev = await self.bus.next()
 
                 #  PERCEIVE: Parse raw event into perception
-
                 perc = self._perceive(ev)
 
                 if perc.text:
@@ -86,15 +89,28 @@ class Orchestrator:
                 current_mood = self.appraiser.appraise(perc, ctx)
                 ctx.mood = current_mood
 
-                # ROUTE: Decide which LLM to use
-
+                # ROUTE: Decide which LLM to use + whether vision is needed
                 route = await self.router.decide(ctx)
+
+                # ── VISION: Capture screen if needed ──
+                if route == Route.VISION_LOCAL and self.vision_pipeline is not None:
+                    self.fsm.to(State.VISION)
+                    print("  [Sezel is looking at the screen...]")
+                    try:
+                        visual_context = await self.vision_pipeline.look(
+                            need_semantics=True
+                        )
+                        perc.visual_context = visual_context
+                        ctx = await self._assemble(perc)
+                        ctx.mood = current_mood
+                    except Exception as e:
+                        print(f"  [Vision pipeline error: {e}]")
+
                 llm = self.cloud_llm if route == "cloud" else self.local_llm
 
                 self.fsm.to(State.REASONING)
 
                 # REASON: Get response from the chosen LLM
-
                 try:
                     plan = await llm.complete(ctx)
                 except Exception as e:
@@ -102,9 +118,6 @@ class Orchestrator:
                     plan = Plan(text="I'm having trouble thinking right now. Try again?")
 
                 self.fsm.to(State.RESPONDING)
-
-                # RESPOND: Emit the response
-
                 await self._emit(plan.text)
 
                 self.fsm.to(State.CONSOLIDATING)
@@ -160,6 +173,10 @@ class Orchestrator:
         total_chars = sum(len(t.content) for t in working_turn)
         total_chars += sum(len(t.content) for t in retrieved_turn)
         total_chars += len(perc.text or "")
+        if perc.visual_context:
+            total_chars += len(perc.visual_context.text_on_screen)
+            if perc.visual_context.caption:
+                total_chars += len(perc.visual_context.caption)
         token_estimate = total_chars // 4
 
         # Step 4: Build the full context
@@ -186,6 +203,17 @@ class Orchestrator:
 
         user_turn = Turn(role="user", content=perc.text or "")
         asst_turn = Turn(role="assistant", content=plan.text)
+
+        # If there was visual context, append it to the user turn for memory
+        if perc.visual_context:
+            visual_summary = (
+                f"\n[Screen context: "
+                f"Text: {perc.visual_context.text_on_screen[:200]}"
+            )
+            if perc.visual_context.caption:
+                visual_summary +=f" | Caption: {perc.visual_context.caption[:200]}"
+            visual_summary += "]"
+            user_turn.content += visual_summary
 
         # Save to working memory (in-RAM)
         self.working.append(user_turn)

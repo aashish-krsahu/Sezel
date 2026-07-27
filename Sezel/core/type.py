@@ -19,7 +19,7 @@ class Perception:
     """Raw sensory input parsed from an Event."""
     text: str
     user_affect: "Affect | None" = None
-    visual_context: str | None = None
+    visual_context: "VisualContext | None" = None
     embeddings: list[float] | None = None
 
 
@@ -79,8 +79,26 @@ class MemoryHit:
     score: float
     meta: dict[str, Any] = field(default_factory=dict)
 
+@dataclass
+class UIElement:
+    """A single UI element from the accessibility tree."""
+    role: str
+    name: str
+    bbox: tuple[int, int, int, int]
+    clickable: bool = False
+
+@dataclass
+class VisualContext:
+    """Structured representation of what's on screen."""
+    text_on_screen: str = ""
+    elements: list[UIElement] = field(default_factory=list)
+    caption: str | None = None
+    image_ref: str | None = None
+
 class Route:
 
     LOCAL = "local"
     CLOUD = "cloud"
-
+    TOOL_ONLY = "tool_only"
+    VISION_LOCAL = "vision_local"
+    VISION_CLOUD = "vision_cloud"

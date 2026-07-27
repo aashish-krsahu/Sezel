@@ -10,6 +10,8 @@ import pathlib
 
 from networkx.algorithms import dominance
 
+from cognition import model_manager
+
 if globals().get("__package__") is None and __name__ == "__main__":
     # Insert the repository root (parent of the package dir) into sys.path
     package_dir = pathlib.Path(__file__).resolve().parent
@@ -33,10 +35,17 @@ from .memory.consolidate import Consolidate
 from .cognition.llm_cloud import ClaudeLLM
 from .cognition.llm_local import OllamaLLM
 from .cognition.embedder import BGEmbedder
+from .cognition.vlm import OllamaVLM
+from .cognition.model_manager import ModelManager, VRAMbudget
 from .interface.cli import CliInterface
 from .emotion.affect import AffectiveState
 from .emotion.appraisal import Appraiser
 from .emotion.detector import TextEmotionDetector
+from .vision.ocr import OCREngine
+from .vision.vlm_pipeline import VisionPipeline
+from .vision.ally import UIAccessibility
+from .vision.capture import ScreenCapture
+from .memory.visual import VisualStore
 
 
 async def main():
@@ -48,7 +57,7 @@ async def main():
     print()
 
     # Step 1: Load configuration
-    print("[1/12] Loading configuration...")
+    print("[1/14] Loading configuration...")
     config_dir = Path(__file__).parent / "config"
     try:
         # Load models.yaml from config directory
@@ -62,11 +71,17 @@ async def main():
         routing = routing_config.get("routing", {})
         complexity_threshold = routing.get("complexity_threshold", 0.6)
         cloud_model = routing.get("cloud_model", "claude-sonnet-4-6")
+        
+        # Vision Config
+        vision_config = routing_config.get("vision", {})
+        vlm_model = vision_config.get("vlm_model", "llava")
+        vision_enabled = vision_config.get("enabled", True)
 
         print(f"   Model: {model_name}")
         print(f"   Host: {model_host}")
         print(f"   Cloud model: {cloud_model}")
         print(f"   Complexity threshold: {complexity_threshold}")
+        print(f"   Vision enabled: {vision_enabled}")
     except Exception as e:
         print(f"   Warning: Config loading failed ({e}), using defaults")
         model_name = "qwen2.5:7b"
@@ -74,23 +89,25 @@ async def main():
         episodic_db = "sezel.db"
         complexity_threshold = 0.6
         cloud_model = "claude-sonnet-4-6"
+        vlm_model = "llava"
+        vision_enabled = True
 
     # Step 2: Create infrastructure
 
-    print("[2/12] Creating event bus...")
+    print("[2/14] Creating event bus...")
     bus = EventBus()
 
-    print("[3/12] Creating FSM...")
+    print("[3/14] Creating FSM...")
     fsm = FSM()
 
-    print("[4/12] Creating working memory...")
+    print("[4/14] Creating working memory...")
     working = WorkingMemory(size=20)
 
-    print("[5/12] Creating episodic store...")
+    print("[5/14] Creating episodic store...")
     episodic = EpisodicStore(episodic_db)
 
     # Step 3: Rehydrate working memory from episodic store
-    print("[6/12] Rehydrating from episodic memory...")
+    print("[6/14] Rehydrating from episodic memory...")
     try:
         recent_turns = await episodic.recent(10)
         for turn in recent_turns:
@@ -103,7 +120,7 @@ async def main():
         print(f"   Warning: Could not rehydrate episodic memory ({e})")
 
     # STEP 4: Create Local LLM (Ollama)
-    print("[7/12] Initializing local LLM (Ollama)...")
+    print("[7/14] Initializing local LLM (Ollama)...")
     try:
         # Use explicit name `local_llm` to match later references
         local_llm = OllamaLLM(model=model_name, host=model_host)
@@ -114,11 +131,11 @@ async def main():
 
     # STEP 5: Create Embedder + Semantic Store
 
-    print("[8/12] Initializing embedder (text → vectors)...")
+    print("[8/14] Initializing embedder (text → vectors)...")
     embedder = BGEmbedder()
     # Embedder loads lazily on first use, so this is instant
 
-    print("[9/12] Creating semantic memory store...")
+    print("[9/14] Creating semantic memory store...")
     # Use variable name `semantic` (not `semantic_store`) to match later use
     semantic = SemanticStore(embedder=embedder)
     try:
@@ -129,7 +146,7 @@ async def main():
 
     # STEP 6: Create Cloud LLM (Claude)
 
-    print("[10/12] Initializing cloud LLM (Claude)...")
+    print("[10/14] Initializing cloud LLM (Claude)...")
     cloud_llm = None
     try:
         cloud_llm = ClaudeLLM(model=cloud_model)
@@ -142,10 +159,11 @@ async def main():
 
     # STEP 7: Create Router + Consolidator
 
-    print("[11/12] Creating router...")
+    print("[11/14] Creating router...")
     router = Router(
         local_llm=local_llm,
-        complexity_threshold=complexity_threshold
+        complexity_threshold=complexity_threshold,
+        vision_enabled = vision_enabled,
     )
 
     # Create Consolidator (only if cloud is available)
@@ -161,6 +179,8 @@ async def main():
     else:
         print("   Consolidator disabled (needs cloud LLM)")
 
+    # Step 8: Emotion Engine
+    print("[12/14] Setting up emotion engine...")
     affective_state= AffectiveState(
         baseline= Affect(valence= 0.1, arousal= 0.0, dominance= 0.1),
         decay_per_sec= 0.95,
@@ -176,10 +196,60 @@ async def main():
     appraiser= Appraiser(affective_state)
     print("   Appraiser ready")
 
-    # STEP 8: Wire the Orchestrator
-    print("[12/12] Wiring orchestrator...")
+    # STEP 9: Create vision components
+    print("[13/14] Setting up vision System...")
+    vision_pipeline = None
+    if vision_pipeline:
+        try:
+            capture = ScreenCapture()
+            ocr = OCREngine()
+            ally = UIAccessibility()
+            visual_store = VisualStore(
+                storage_dir="visual_memory",
+                embedder=embedder,
+                semantic_store=semantic,
+            )
 
+            # Create VLM (via ollama)
+            vlm = None
+            vlm_model_available = vision_config.get("vlm_model", "llava")
+            try:
+                vlm = OllamaVLM(model = vlm_model_available, host = model_host)
+                print(f"   VLM ready: {vlm_model_available}")
+            except Exception as e:
+                print(f"   VLM not available: {e}")
+                print("   (Sezel will use OCR + UI tree without VLM captioning)")
+
+            # Create VRAM model manager
+            vram_budget = VRAMbudget(
+                total_gb=vision_config.get("total_gb", 6.0),
+                reserved_gb= 0.5
+            )
+            model_manager = ModelManager(vram_budget = vram_budget)
+            if vlm:
+                model_manager.register("vlm", vram_gb = 4.0)
+
+            vision_pipeline = VisionPipeline(
+                capture = capture,
+                ocr = ocr,
+                ally = ally,
+                vlm = vlm,
+                model_manager = model_manager,
+                visual_store = visual_store,
+            )
+            print("   Vision pipeline ready")
+            print(f"   Visual memory directory: visual_memory/")
+        except Exception as e:
+            print(f"   Warning: Vision setup failed ({e})")
+            print("   Sezel will continue without vision capabilities")
+            vision_pipeline = None
+    else:
+        print("   Vision disabled (configured in routing.yaml)")
+
+    # STEP 10: Wire the Orchestrator
     # Wire up orchestrator
+    print("[14/14] Wiring orchestrator...")
+
     orchestrator = Orchestrator(
         bus=bus,
         local_llm=local_llm,
@@ -192,6 +262,7 @@ async def main():
         affective_state=affective_state,
         text_emotion_detector=text_emotion,
         decay_interval=30.0,
+        vision_pipeline=vision_pipeline,
     )
 
     cli = CliInterface(bus)

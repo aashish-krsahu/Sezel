@@ -8,6 +8,7 @@ class State(Enum):
     PERCEIVING = auto()
     Appraising = auto()
     ASSEMBLING = auto()
+    VISION = auto()
     ROUTING = auto()
     REASONING = auto()
     RESPONDING = auto()

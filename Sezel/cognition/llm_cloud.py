@@ -75,9 +75,23 @@ class ClaudeLLM:
             "Be natural, helpful, and concise."
         )
 
+        if ctx.perception.visual_context:
+            vc = ctx.perception.visual_context
+            visual_block = "\n\n[Screen Content]\n"
+            if vc.text_on_screen:
+                visual_block += f"Visible text: {vc.text_on_screen}\n"
+            if vc.elements:
+                element_summary = ", ".join(
+                    f"{el.role}: '{el.name}'" for el in vc.elements[:20]
+                )
+                visual_block += f"UI elements: {element_summary}\n"
+            if vc.caption:
+                visual_block += f"Visual description: {vc.caption}\n"
+        system_prompt += visual_block
+
         if ctx.retrieved:
             memory_content = "\nRelevant memories from past sessions:\n"
-            for hit in ctx.working:
+            for hit in ctx.retrieved:
                 memory_content += f" - {hit.text}\n"
             system_prompt += memory_content
 

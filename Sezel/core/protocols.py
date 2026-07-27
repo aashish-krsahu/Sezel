@@ -1,5 +1,5 @@
 """Protocol definitions for pluggable components."""
-
+from tkinter import Image
 from typing import Protocol, Awaitable
 from .type import Context, Plan
 
@@ -28,6 +28,18 @@ class Embedder(Protocol):
         """Embed text into a vector."""
         ...
 
+class VLM(Protocol):
+    async def caption(self, image: Image.Image, prompt: str | None = None) -> str:
+        """Generate a caption/description of the image."""
+        ...
+
+    async def locate(
+            self,
+            image: Image.Image,
+            description: str,
+    ) -> tuple[int,int,int,int] | None:
+        """Locate an element by description, return bbox or None."""
+        ...
 
 class MemoryStore(Protocol):
     """Interface for memory storage backends."""

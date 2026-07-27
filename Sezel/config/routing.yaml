@@ -8,3 +8,8 @@ routing:
   consolidation:
     max_per_tick: 10
     idle_minutes: 5
+
+  vision:
+    enabled: true
+    vlm_model: "llava"
+    vram_gb: 6.0

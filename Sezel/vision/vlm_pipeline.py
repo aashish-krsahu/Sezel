@@ -14,14 +14,14 @@ from ..cognition.model_manager import ModelManager
 from ..memory.visual import VisualStore
 
 @dataclass
-class VLMContext:
+class VisualContext:
     text_on_screen: str
     elements: list[UIElement] = field(default_factory=list)
     caption: Optional[str] = None
     image_ref: Optional[str] = None
     ocr_detail: Optional[str] = None
 
-class VLMPipeline:
+class VisionPipeline:
     """
         The main vision coordinator.
 
@@ -51,7 +51,7 @@ class VLMPipeline:
     async def look(
             self,
             need_semantics: bool = True,
-    ) -> VLMContext:
+    ) -> VisualContext:
         """
         Args:
             need_semantics: If True, also runs the VLM to generate a caption.
@@ -87,7 +87,7 @@ class VLMPipeline:
                 ocr = ocr_result.text,
             )
 
-        return VLMContext(
+        return VisualContext(
             text_on_screen = ocr_result.text,
             elements = ui_elements,
             caption = caption,

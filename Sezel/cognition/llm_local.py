@@ -1,6 +1,8 @@
 """Local LLM via Ollama HTTP API."""
 
 import httpx
+from sqlalchemy.sql import elements
+
 from ..core.type import Context, Plan
 
 
@@ -34,13 +36,27 @@ class OllamaLLM:
     def _render(self, ctx: Context) -> list[dict[str, str]]:
         """Convert Context into Ollama chat messages."""
         system_prompt = (
-            "You are Sezel, a helpful AI assistant. "
+            "You are Sezel, a helpful AI companion. "
             f"Current mood: {ctx.mood.as_prompt()}\n"
             "Be concise and natural."
         )
-        
+
+        if ctx.perception.visual_context:
+            vc = ctx.perception.visual_context
+            visual_block = "\n\n[Screen Content]\n"
+            if vc.text_on_screen:
+                visual_block += f"Visible text: {vc.text_on_screen}\n"
+            if vc.elements:
+                element_summary = ", ".join(
+                    f"{el.role}: '{el.name}'" for el in vc.elements[:20]
+                )
+                visual_block += f"UI elements: {element_summary}\n"
+            if vc.caption:
+                visual_block += f"Visual description: {vc.caption}\n"
+            system_prompt += visual_block
+
         messages = [{"role": "system", "content": system_prompt}]
-        
+
         # Add working memory history
         for turn in ctx.working:
             messages.append({
