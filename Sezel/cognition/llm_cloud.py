@@ -41,7 +41,7 @@ class ClaudeLLM:
 
         kwangs = {
             "model": self.model,
-            "system": self.system_prompt,
+            "system": system_prompt,
             "messages": messages,
             "max_tokens": self.max_tokens
         }
@@ -69,7 +69,7 @@ class ClaudeLLM:
     def _render(self, ctx: Context) -> tuple[str, list[dict]]:
 
         system_prompt = (
-            "You are Sezel, a helpful AI assistant running in the cloud. "
+            "You are Sezel, a helpful AI assistant running in the cloud with screen capture capabilities. "
             "You handle the complex questions that the local model can't.\n"
             f"Current mood: {ctx.mood.as_prompt()}\n"
             "Be natural, helpful, and concise."
@@ -77,7 +77,7 @@ class ClaudeLLM:
 
         if ctx.perception.visual_context:
             vc = ctx.perception.visual_context
-            visual_block = "\n\n[Screen Content]\n"
+            visual_block = "\n\n[Screen Content - You have captured and can now see the user's screen]\n"
             if vc.text_on_screen:
                 visual_block += f"Visible text: {vc.text_on_screen}\n"
             if vc.elements:
@@ -87,7 +87,9 @@ class ClaudeLLM:
                 visual_block += f"UI elements: {element_summary}\n"
             if vc.caption:
                 visual_block += f"Visual description: {vc.caption}\n"
-        system_prompt += visual_block
+            system_prompt += visual_block
+        else:
+            system_prompt += "\n\nYou have the ability to capture and analyze the user's screen when they ask you to look at it."
 
         if ctx.retrieved:
             memory_content = "\nRelevant memories from past sessions:\n"

@@ -63,8 +63,8 @@ class TextEmotionDetector:
 
         if self._classifier == "fallback":
             # Use rough sentiment as fallback
-            from .appraisal import _rough_sentiment
-            sent = _rough_sentiment(text)
+            from .appraisal import Appraiser
+            sent = Appraiser._rough_sentiment(text)
             return Affect(
                 valence=sent * 0.5,
                 arousal= sent * 0.3,
@@ -76,8 +76,8 @@ class TextEmotionDetector:
             results= self._classifier(text)
         except Exception as e:
             print(f"  [TextEmotionDetector: inference error ({e}), using fallback]")
-            from .appraisal import _rough_sentiment
-            sent = _rough_sentiment(text)
+            from .appraisal import Appraiser
+            sent = Appraiser._rough_sentiment(text)
             return Affect(
                 valence=sent * 0.5,
                 arousal=sent * 0.3,

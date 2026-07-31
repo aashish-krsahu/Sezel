@@ -106,7 +106,16 @@ class Orchestrator:
                     except Exception as e:
                         print(f"  [Vision pipeline error: {e}]")
 
-                llm = self.cloud_llm if route == "cloud" else self.local_llm
+                # ── LLM Selection: Choose which model to use ──
+                if route == Route.CLOUD:
+                    llm = self.cloud_llm
+                elif route == Route.VISION_LOCAL:
+                    llm = self.local_llm
+                elif route == Route.VISION_CLOUD:
+                    llm = self.cloud_llm
+                else:
+                    # Default routes: LOCAL, TOOL_ONLY
+                    llm = self.local_llm
 
                 self.fsm.to(State.REASONING)
 

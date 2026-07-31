@@ -1,6 +1,6 @@
 from sentence_transformers.sentence_transformer.modules.tokenizer import word
 
-from ..core.type import Context, Route
+from ..core.type import Context, Route, Perception, Affect
 from ..core.protocols import LLM
 
 VISION_KEYWORDS = {
@@ -23,6 +23,7 @@ class Router:
         self.local_llm = local_llm
         self.local_ctx_limit = local_ctx_limit
         self.complexity_threshold = complexity_threshold
+        self.vision_enabled = vision_enabled
 
         self.stats = {"local": 0, "cloud": 0, "vision": 0}
 
@@ -48,7 +49,15 @@ class Router:
 
         # ── Rule 3: Ask local LLM to score complexity ──
         try:
-            complexity = await self.local_llm.get_complexity(text)
+            # Create a minimal context just for complexity scoring
+            complexity_ctx = Context(
+                working=[],
+                retrieved=[],
+                mood=Affect(),
+                perception=Perception(text=text),
+                token_estimate=len(text) // 4
+            )
+            complexity = await self.local_llm.score_complexity(complexity_ctx)
         except Exception:
             # If scoring fails, default to local (safe fallback)
             complexity = 0.0

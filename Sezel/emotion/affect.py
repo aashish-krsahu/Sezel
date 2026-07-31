@@ -20,7 +20,7 @@ class AffectiveState:
         self,
         baseline:Affect,
         decay_per_sec:float=0.95,
-        persist_path: str | Path = "sezel_mood.json"
+        persist_path: str | Path = Path("sezel_mood.json")
     ):
         self.baseline = baseline
         self.decay_per_sec = decay_per_sec

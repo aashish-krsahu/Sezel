@@ -1,5 +1,5 @@
 """Protocol definitions for pluggable components."""
-from tkinter import Image
+from PIL import Image
 from typing import Protocol, Awaitable
 from .type import Context, Plan
 

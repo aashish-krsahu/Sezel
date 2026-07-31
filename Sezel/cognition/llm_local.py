@@ -36,7 +36,7 @@ class OllamaLLM:
     def _render(self, ctx: Context) -> list[dict[str, str]]:
         """Convert Context into Ollama chat messages."""
         system_prompt = (
-            "You are Sezel, a helpful AI companion. "
+            "You are Sezel, a helpful AI companion with screen capture capabilities. "
             f"Current mood: {ctx.mood.as_prompt()}\n"
             "Be concise and natural."
         )
@@ -54,6 +54,8 @@ class OllamaLLM:
             if vc.caption:
                 visual_block += f"Visual description: {vc.caption}\n"
             system_prompt += visual_block
+        else:
+            system_prompt += "\n\nYou have the ability to capture and analyze the user's screen when they ask you to look at it."
 
         messages = [{"role": "system", "content": system_prompt}]
 

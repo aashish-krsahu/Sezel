@@ -3,49 +3,44 @@
 # When this module is executed directly (python Sezel\main.py) the
 # package context for relative imports is not set which raises
 # "attempted relative import with no known parent package". Set up
-# sys.path and __package__ so relative imports work in both
-# `python -m Sezel.main` and `python Sezel\main.py` execution modes.
+# sys.path so the Sezel package is importable, then use absolute imports.
 import sys
 import pathlib
 
 from networkx.algorithms import dominance
 
-from cognition import model_manager
-
-if globals().get("__package__") is None and __name__ == "__main__":
-    # Insert the repository root (parent of the package dir) into sys.path
-    package_dir = pathlib.Path(__file__).resolve().parent
+# Unconditionally add the parent directory to sys.path so Sezel is always importable
+package_dir = pathlib.Path(__file__).resolve().parent
+if str(package_dir.parent) not in sys.path:
     sys.path.insert(0, str(package_dir.parent))
-    # Set package name so relative imports behave correctly
-    __package__ = package_dir.name
 
 import asyncio
 from pathlib import Path
 
-from .core.bus import EventBus
-from .core.type import Affect
-from .core.config import Config
-from .orchestrator.fsm import FSM
-from .orchestrator.loop import Orchestrator
-from .orchestrator.router import Router
-from .memory.working import WorkingMemory
-from .memory.episodic import EpisodicStore
-from .memory.semantic import SemanticStore
-from .memory.consolidate import Consolidate
-from .cognition.llm_cloud import ClaudeLLM
-from .cognition.llm_local import OllamaLLM
-from .cognition.embedder import BGEmbedder
-from .cognition.vlm import OllamaVLM
-from .cognition.model_manager import ModelManager, VRAMbudget
-from .interface.cli import CliInterface
-from .emotion.affect import AffectiveState
-from .emotion.appraisal import Appraiser
-from .emotion.detector import TextEmotionDetector
-from .vision.ocr import OCREngine
-from .vision.vlm_pipeline import VisionPipeline
-from .vision.ally import UIAccessibility
-from .vision.capture import ScreenCapture
-from .memory.visual import VisualStore
+from Sezel.core.bus import EventBus
+from Sezel.core.type import Affect
+from Sezel.core.config import Config
+from Sezel.orchestrator.fsm import FSM
+from Sezel.orchestrator.loop import Orchestrator
+from Sezel.orchestrator.router import Router
+from Sezel.memory.working import WorkingMemory
+from Sezel.memory.episodic import EpisodicStore
+from Sezel.memory.semantic import SemanticStore
+from Sezel.memory.consolidate import Consolidate
+from Sezel.cognition.llm_cloud import ClaudeLLM
+from Sezel.cognition.llm_local import OllamaLLM
+from Sezel.cognition.embedder import BGEmbedder
+from Sezel.cognition.vlm import OllamaVLM
+from Sezel.cognition.model_manager import ModelManager, VRAMbudget
+from Sezel.interface.cli import CliInterface
+from Sezel.emotion.affect import AffectiveState
+from Sezel.emotion.appraisal import Appraiser
+from Sezel.emotion.detector import TextEmotionDetector
+from Sezel.vision.ocr import OCREngine
+from Sezel.vision.vlm_pipeline import VisionPipeline
+from Sezel.vision.ally import UIAccessibility
+from Sezel.vision.capture import ScreenCapture
+from Sezel.memory.visual import VisualStore
 
 
 async def main():
@@ -199,7 +194,7 @@ async def main():
     # STEP 9: Create vision components
     print("[13/14] Setting up vision System...")
     vision_pipeline = None
-    if vision_pipeline:
+    if vision_enabled:
         try:
             capture = ScreenCapture()
             ocr = OCREngine()
