@@ -46,6 +46,7 @@ from Sezel.memory.visual import VisualStore
 async def main():
     """Boot up all components and start the event loop."""
 
+    global vision_config
     print("=" * 60)
     print("Sezel — Phase 1 Persistent AI Assistant")
     print("=" * 60)

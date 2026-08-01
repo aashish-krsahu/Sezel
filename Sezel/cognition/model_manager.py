@@ -26,7 +26,7 @@ class ModelSlot:
 
 class ModelManager:
 
-    def __int__(self, vram_budget: VRAMbudget | None = None) -> None:
+    def __init__(self, vram_budget: VRAMbudget | None = None) -> None:
         self.budget = vram_budget or VRAMbudget()
         self._active: str | None = None
         self._slots: dict[str, ModelSlot] = {}
@@ -40,13 +40,13 @@ class ModelManager:
         return self._active
 
     @property
-    def can_swap_to(self, name:str) -> bool:
+    def can_swap_to(self, name:str = "llava") -> bool:
         """Check if the model can fit in VRAM (possibly after unloading another)."""
         needed = self._slots.get(name, ModelSlot(name, 0)).vram_gb
         available = self.budget.available_gb
 
-        if self._active and self.active in self._slots:
-            available += self._slots[self.active].vram_gb
+        if self._active and self._active in self._slots:
+            available += self._slots[self._active].vram_gb
 
         return needed <= available
 
@@ -57,7 +57,7 @@ class ModelManager:
         Returns True if the model was acquired, False if it wouldn't fit.
         """
 
-        if not self.can_swap_to(name):
+        if not self.can_swap_to:
             return False
 
         if self._active:

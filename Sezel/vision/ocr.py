@@ -39,7 +39,8 @@ class OCREngine:
         if tesseract_cmd:
             pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
 
-    def read(self, image: Image.Image) -> OCRResult:
+    @staticmethod
+    def read(image: Image.Image) -> OCRResult:
         """
         Pre-processing: convert to grayscale + slight contrast boost
         for better accuracy.

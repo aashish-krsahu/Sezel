@@ -6,8 +6,6 @@ from PIL import Image
 from io import BytesIO
 import base64
 
-from jedi.inference.utils import to_tuple
-from zmq.utils import monitor
 
 
 class ScreenCapture:
@@ -25,16 +23,16 @@ class ScreenCapture:
         self.monitor = monitor
 
     def screen(self) -> Image.Image:
-        with mss.mss() as sct:
+        with mss.MSS() as sct:
             sct_img = sct.grab(sct.monitors[self.monitor])
-            return Image.frombytes("RGB", to_tuple(sct_img.size), sct_img.rgb)
+            return Image.frombytes("RGB", (sct_img.width, sct_img.height), sct_img.rgb)
 
     def region(self, left: int, top: int, width: int, height: int) -> Image.Image:
         # capture specific region of the screen
-        with mss.mss() as sct:
+        with mss.MSS() as sct:
             monitor = {"left": left, "top": top, "width": width, "height": height}
             sct_img = sct.grab(monitor)
-            return Image.frombytes("RGB", to_tuple(sct_img.size), sct_img.rgb)
+            return Image.frombytes("RGB", (sct_img.width, sct_img.height), sct_img.rgb)
 
     @staticmethod
     def base64(img: Image.Image, format: str = "PNG") -> str:

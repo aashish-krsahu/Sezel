@@ -1,10 +1,5 @@
 from pathlib import Path
 
-from sqlalchemy.dialects.oracle import vector
-from sqlalchemy.ext.asyncio import result
-from sqlalchemy.orm.collections import collection
-from sympy.plotting.backends.textbackend import text
-
 from ..core.type import MemoryHit
 from ..cognition.embedder import BGEmbedder
 
@@ -27,16 +22,40 @@ class SemanticStore:
         if self._collection is None:
             import chromadb
             from chromadb.config import Settings
+            import sqlite3
 
-            client = chromadb.PersistentClient(
-                path= (self.persist_directory),
-                settings = Settings(anonymized_telemetry=False)
-            )
+            try:
+                client = chromadb.PersistentClient(
+                    path= (self.persist_directory),
+                    settings = Settings(anonymized_telemetry=False)
+                )
 
-            self._collection = client.get_or_create_collection(
-                name= self.collection_name,
-                metadata= {"hnsw:space": "cosine"}
-            )
+                self._collection = client.get_or_create_collection(
+                    name= self.collection_name,
+                    metadata= {"hnsw:space": "cosine"}
+                )
+            except (sqlite3.DatabaseError, Exception) as e:
+                # If database is corrupted, reset it
+                if "database disk image is malformed" in str(e) or "database" in str(e).lower():
+                    print(f"  [SemanticStore: Database corrupted, resetting... ({e})]")
+                    # Remove corrupted database files
+                    db_file = self.persist_directory / "chroma.sqlite3"
+                    if db_file.exists():
+                        try:
+                            db_file.unlink()
+                        except Exception:
+                            pass
+                    # Retry with fresh database
+                    client = chromadb.PersistentClient(
+                        path= (self.persist_directory),
+                        settings = Settings(anonymized_telemetry=False)
+                    )
+                    self._collection = client.get_or_create_collection(
+                        name= self.collection_name,
+                        metadata= {"hnsw:space": "cosine"}
+                    )
+                else:
+                    raise
 
         return self._collection
 
@@ -93,7 +112,7 @@ class SemanticStore:
         results = collection.query(
             query_embeddings=[query_vector],
             n_results= min(k, count),
-            include= ["document", "metadata", "distances"]
+            include= ["documents", "metadatas", "distances"]
         )
 
         memories = []

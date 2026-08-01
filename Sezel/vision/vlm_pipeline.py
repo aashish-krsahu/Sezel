@@ -19,7 +19,7 @@ class VisualContext:
     elements: list[UIElement] = field(default_factory=list)
     caption: Optional[str] = None
     image_ref: Optional[str] = None
-    ocr_detail: Optional[str] = None
+    ocr_detail: Optional[OCRResult] = None
 
 class VisionPipeline:
     """
@@ -35,14 +35,14 @@ class VisionPipeline:
     def __init__(
             self,
             capture: ScreenCapture | None = None,
-            ocr: OCRResult | None = None,
+            ocr: OCREngine | None = None,
             ally: UIAccessibility | None = None,
             vlm: OllamaVLM | None = None,
             model_manager: ModelManager | None = None,
             visual_store: VisualStore | None = None,
     ):
         self.capture = capture or ScreenCapture()
-        self.ocr = ocr or OCRResult()
+        self.ocr = ocr or OCREngine()
         self.ally = ally or UIAccessibility()
         self.vlm = vlm
         self.model_manager = model_manager
@@ -84,7 +84,7 @@ class VisionPipeline:
             image_ref = await self.visual_store.save(
                 image = screenshot,
                 caption = caption or ocr_result.text,
-                ocr = ocr_result.text,
+                text = ocr_result.text,
             )
 
         return VisualContext(

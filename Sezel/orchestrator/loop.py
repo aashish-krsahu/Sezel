@@ -9,10 +9,9 @@
 import asyncio
 
 from core.type import Route
-from .fsm import State
 from .router import Router
 from ..core.bus import EventBus
-from ..core.type import Event, Perception, Context, Affect, Turn, Plan
+from ..core.type import Event, Perception, Context, Turn, Plan
 from ..core.protocols import LLM
 from ..orchestrator.fsm import FSM, State
 from ..memory.working import WorkingMemory
@@ -22,6 +21,7 @@ from ..interface.cli import CliInterface
 from ..emotion.affect import AffectiveState
 from ..emotion.appraisal import Appraiser
 from ..emotion.detector import TextEmotionDetector
+from ..core.type import Affect
 from ..vision.vlm_pipeline import VisionPipeline
 
 class Orchestrator:
@@ -52,7 +52,11 @@ class Orchestrator:
         self.semantic = semantic
         self.fsm = fsm
         self.cli = cli
-        self.mood = affective_state or AffectiveState()
+        self.mood = affective_state or AffectiveState(
+            baseline=Affect(valence=0.1, arousal=0.0, dominance=0.1),
+            decay_per_sec=0.95,
+            persist_path="sezel_mood.json"
+        )
         self.text_emotion = text_emotion_detector or TextEmotionDetector()
         self.appraiser = Appraiser(self.mood)
         self.decay_interval = decay_interval
@@ -202,7 +206,7 @@ class Orchestrator:
         if self.cli:
             await self.cli.emit(text)
         else:
-            await print(f"\nSezel: {text}\n")
+            print(f"\nSezel: {text}\n")
 
     async def _consolidate(self, perc: Perception, plan: Plan) -> None:
         """Save turns to both working and episodic memory."""
